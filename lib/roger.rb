@@ -1,6 +1,8 @@
 require 'bunny'
 
 module Roger
+  autoload :Config, 'roger/config'
+  autoload :Logging, 'roger/logging'
   autoload :Route, 'roger/route'
   autoload :Consumer, 'roger/consumer'
   autoload :Payload, 'roger/payload'
@@ -34,10 +36,6 @@ module Roger
     def register_consumers
       klasses = ::Rails.root.join('app/consumers').glob('**/*.rb')
       klasses.each { |klass| consumers << klass.basename(klass.extname.to_s).to_s.camelize.constantize }
-    end
-
-    def log(message)
-      puts message
     end
   end
 end

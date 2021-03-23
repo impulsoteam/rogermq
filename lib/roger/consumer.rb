@@ -1,10 +1,8 @@
 module Roger
   module Consumer
-    attr_reader :body, :properties, :delivery_info
+    include Roger::Logging
 
-    def logger
-      @logger ||= Rails.logger
-    end
+    attr_reader :body, :properties, :delivery_info
 
     def initialize(payload)
       @body = payload.body
