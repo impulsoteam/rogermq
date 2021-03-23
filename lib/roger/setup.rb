@@ -1,13 +1,15 @@
 module Roger
   class Setup
     class << self
+      include Roger::Logging
+
       def call
         load_rails
 
         Roger.register_consumers
         Roger.broker.start
 
-        Roger.log '[ i ] Starting Consumers'
+        logger.info '[ i ] Starting Consumers'
 
         map_exchanges
         bind_queues_to_exchanges
@@ -16,7 +18,7 @@ module Roger
         begin
           sleep(5) while true
         rescue Interrupt
-          Roger.log '[ i ] Quitting Roger'
+          logger.info '[ i ] Quitting Roger'
           Roger.broker.close && exit(0)
         end
       end
@@ -50,7 +52,7 @@ module Roger
           log = []
           log << "[ i ] [#{route.consumer}] Queue #{route.queue} binds to #{route.exchange}"
           log << "using routing key #{route.routing_key}" if route.routing_key.present?
-          Roger.log log.join(' ')
+          logger.info log.join(' ')
 
           Roger.queues << [queue, route.consumer]
         end
@@ -59,7 +61,7 @@ module Roger
       def subscribe_queues
         Roger.queues.each do |(queue, consumer)|
           queue.subscribe do |delivery_info, properties, payload|
-            Roger.log "[consumer] #{queue.name} received a message"
+            logger.info "[consumer] #{queue.name} received a message"
             payload = Roger::Payload.new(payload, properties, delivery_info)
             consumer.new(payload).process
           end
