@@ -60,10 +60,9 @@ module Roger
 
       def subscribe_queues
         Roger.queues.each do |(queue, consumer)|
-          queue.subscribe do |delivery_info, properties, payload|
+          queue.subscribe do |delivery_info, properties, body|
             logger.info "[consumer] #{queue.name} received a message"
-            payload = Roger::Payload.new(payload, properties, delivery_info)
-            consumer.new(payload).process
+            consumer.new(delivery_info, properties, body).process
           end
         end
       end

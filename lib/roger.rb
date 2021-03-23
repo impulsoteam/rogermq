@@ -5,7 +5,6 @@ module Roger
   autoload :Logging, 'roger/logging'
   autoload :Route, 'roger/route'
   autoload :Consumer, 'roger/consumer'
-  autoload :Payload, 'roger/payload'
   autoload :Setup, 'roger/setup'
 
   class << self
