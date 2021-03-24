@@ -10,19 +10,7 @@ module Roger
 
   class << self
     def routes
-      @routes ||= []
-    end
-
-    def consumers
-      @consumers ||= []
-    end
-
-    def queues
-      @queues ||= []
-    end
-
-    def exchanges
-      @exchanges ||= {}
+      @routes ||= {}
     end
 
     def broker
@@ -33,9 +21,9 @@ module Roger
       @channel ||= @broker.create_channel
     end
 
-    def register_consumers
+    def load_consumers
       klasses = ::Rails.root.join('app/consumers').glob('**/*.rb')
-      klasses.each { |klass| consumers << klass.basename(klass.extname.to_s).to_s.camelize.constantize }
+      klasses.each { |klass| klass.basename(klass.extname.to_s).to_s.camelize.constantize }
     end
   end
 end

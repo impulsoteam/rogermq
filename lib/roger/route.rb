@@ -1,8 +1,8 @@
 module Roger
   class Route
-    attr_accessor :consumer, :exchange, :queue, :routing_key
+    attr_accessor :consumer, :exchange, :queue, :routing_key, :consumer_key
 
-    def initialize(consumer, exchange, queue, routing_key = nil)
+    def initialize(consumer, exchange, queue, routing_key = nil, route_options = {  })
       @consumer = consumer
       @exchange = exchange
       @queue = queue
