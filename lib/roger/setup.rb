@@ -38,13 +38,10 @@ module Roger
           logger.info log.join(' ')
 
           Roger.queues[route.queue].subscribe do |info, properties, body|
-            consumer_key = [
-              info[:exchange],
-              info[:consumer].queue.name,
-              info[:routing_key]
-            ].reject { |c| c.blank? }.join('.')
+            consumer_key = [info[:exchange], info[:consumer].queue.name, info[:routing_key]]
+              .reject { |c| c.blank? }.join('.')
 
-            payload = Payload.new(info, properties, body)
+            payload = Payload.new(body, properties, info)
             Roger.routes[consumer_key].consumer.new(payload).process
           end
         end
