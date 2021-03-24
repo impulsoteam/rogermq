@@ -13,6 +13,14 @@ module Roger
       @routes ||= {}
     end
 
+    def exchanges
+      @exchanges ||= {}
+    end
+
+    def queues
+      @queues ||= {}
+    end
+
     def broker
       @broker ||= Bunny.new(ENV['CLOUDAMQP_URL'])
     end

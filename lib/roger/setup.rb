@@ -28,16 +28,16 @@ module Roger
 
       def map_routes
         Roger.routes.each do |key, route|
-          queue = Roger.channel.queue(route.queue, { durable: true, auto_delete: false })
-          exchange = Roger.channel.exchange(route.exchange, type: 'topic')
+          Roger.queues[route.queue] ||= Roger.channel.queue(route.queue, { durable: true, auto_delete: false })
+          Roger.exchanges[route.exchange] ||= Roger.channel.exchange(route.exchange, type: 'topic')
           binding_params = { routing_key: route.routing_key }.compact
-          queue.bind(exchange, binding_params)
+          Roger.queues[route.queue].bind(Roger.exchanges[route.exchange], binding_params)
 
           log = ["[ i ] [#{route.consumer}] Queue #{route.queue} binded to #{route.exchange}"]
           log << "using routing key #{route.routing_key}" if route.routing_key.present?
           logger.info log.join(' ')
 
-          queue.subscribe do |info, properties, body|
+          Roger.queues[route.queue].subscribe do |info, properties, body|
             consumer_key = [
               info[:exchange],
               info[:consumer].queue.name,
