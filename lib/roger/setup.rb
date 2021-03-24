@@ -28,7 +28,7 @@ module Roger
 
       def map_routes
         Roger.routes.each do |key, route|
-          Roger.queues[route.queue] ||= Roger.channel.queue(route.queue, { durable: true, auto_delete: false })
+          Roger.queues[route.queue] ||= Roger.channel.queue(route.queue, route.route_params)
           Roger.exchanges[route.exchange] ||= Roger.channel.exchange(route.exchange, type: 'topic')
           binding_params = { routing_key: route.routing_key }.compact
           Roger.queues[route.queue].bind(Roger.exchanges[route.exchange], binding_params)
