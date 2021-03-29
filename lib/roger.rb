@@ -8,7 +8,6 @@ module Roger
   autoload :Server, 'roger/server'
   autoload :Consumer, 'roger/consumer'
   autoload :Rpc, 'roger/rpc'
-  autoload :RpcConsumer, 'roger/rpc_consumer'
   autoload :RpcRoute, 'roger/rpc_route'
 
   class << self
