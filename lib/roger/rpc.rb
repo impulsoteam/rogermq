@@ -56,7 +56,7 @@ module Roger
     end
 
     def exchange
-      @exchange ||= channel.exchange('roger.rpc', type: :direct)
+      @exchange ||= channel.exchange(Config.rpc_route_name, type: :direct, auto_delete: true)
     end
 
     def call_id

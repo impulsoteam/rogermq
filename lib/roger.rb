@@ -21,11 +21,11 @@ module Roger
     end
 
     def rpc_queue
-      @rpc_queue ||= channel.queue('roger.rpc', exclusive: true)
+      @rpc_queue ||= channel.queue(Config.rpc_route_name, exclusive: true)
     end
 
     def rpc_exchange
-      @rpc_exchange ||= channel.exchange('roger.rpc', type: :direct, exclusive: true)
+      @rpc_exchange ||= channel.exchange(Config.rpc_route_name, type: :direct, auto_delete: true)
     end
 
     def exchanges
