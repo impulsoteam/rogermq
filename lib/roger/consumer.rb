@@ -19,6 +19,10 @@ module Roger
         consumer_key = [exchange, queue_name, routing_key].reject { |c| c.blank? }.join('.')
         Roger.routes[consumer_key] ||= Route.new(ancestors.first, exchange, queue_name, routing_key)
       end
+
+      def rpc(routing_key)
+        Roger.rpc_routes[routing_key] ||= RpcRoute.new(ancestors.first, routing_key)
+      end
     end
   end
 end
