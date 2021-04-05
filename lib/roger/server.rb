@@ -1,3 +1,5 @@
+require 'json'
+
 module Roger
   class Server
     class << self
@@ -5,7 +7,6 @@ module Roger
 
       def start
         logger.info '[ i ] Starting server'
-        load_rails
         Roger.load_consumers
         Roger.broker.start
         start_consumer_routes
@@ -19,14 +20,6 @@ module Roger
 
       private
 
-      def load_rails
-        rails_path = File.expand_path(File.join('.', 'config', 'environment.rb'))
-        raise Interrupt unless File.exist?(rails_path)
-        ENV['RACK_ENV'] ||= ENV['RAILS_ENV'] || 'development'
-        require rails_path
-        ::Rails.application.eager_load!
-      end
-
       def start_consumer_routes
         return unless Roger.routes.any?
 
@@ -37,12 +30,12 @@ module Roger
           Roger.queues[route.queue].bind(Roger.exchanges[route.exchange], binding_params)
 
           log = ["[ i ] [#{route.consumer}] Queue #{route.queue} binded to #{route.exchange}"]
-          log << "using routing key #{route.routing_key}" if route.routing_key.present?
+          log << "using routing key #{route.routing_key}" unless route.routing_key.nil? || route.routing_key.empty?
           logger.info log.join(' ')
 
           Roger.queues[route.queue].subscribe do |info, properties, body|
             consumer_key = [info[:exchange], info[:consumer].queue.name, info[:routing_key]]
-              .reject { |c| c.blank? }.join('.')
+              .reject { |c| c.nil? || c.empty? }.join('.')
 
             payload = Payload.new(body, properties, info)
             Roger.routes[consumer_key].consumer.new(payload).process
@@ -72,7 +65,7 @@ module Roger
 
           Roger.rpc_exchange.publish(response.to_json, {
             routing_key: properties[:reply_to],
-            correlated_id: properties[:message_id]
+            correlation_id: properties[:message_id]
           })
         end
       end

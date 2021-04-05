@@ -16,7 +16,7 @@ module Roger
 
     module ClassMethods
       def route(exchange, queue_name, routing_key = nil)
-        consumer_key = [exchange, queue_name, routing_key].reject { |c| c.blank? }.join('.')
+        consumer_key = [exchange, queue_name, routing_key].reject { |c| c.to_s.strip.empty? }.join('.')
         Roger.routes[consumer_key] ||= Route.new(ancestors.first, exchange, queue_name, routing_key)
       end
 
