@@ -10,6 +10,7 @@ module Roger
     def call(*arguments)
       @lock = Mutex.new
       @condition = ConditionVariable.new
+      Roger.broker.start unless Roger.broker.connected?
       initialize_subscription
       exchange.publish(arguments.to_json, publish_options)
       lock.synchronize { condition.wait(lock, timeout) }
@@ -21,34 +22,29 @@ module Roger
     private
 
     def initialize_subscription
-      bunny_client.start
       queue.bind(exchange, routing_key: queue.name)
       queue.subscribe do |delivery_info, properties, payload|
-        @response = JSON.parse(payload) rescue payload.to_s
-        lock.synchronize { condition.signal }
+        if properties[:correlation_id] == message_id
+          @response = JSON.parse(payload) rescue payload.to_s
+          lock.synchronize { condition.signal }
+        end
       end
     end
 
     def finish_subscription
       queue.delete
-      channel.close
-      bunny_client.close
     end
 
     def publish_options
       {
         routing_key: routing_key,
         reply_to: queue.name,
-        message_id: call_id
+        message_id: message_id
       }
     end
 
-    def bunny_client
-      @bunny_client ||= Bunny.new(Config.client_uri)
-    end
-
     def channel
-      @channel ||= bunny_client.create_channel
+      @channel ||= Roger.channel
     end
 
     def queue
@@ -59,8 +55,8 @@ module Roger
       @exchange ||= channel.exchange(Config.rpc_route_name, type: :direct, auto_delete: true)
     end
 
-    def call_id
-      @call_id ||= SecureRandom.uuid
+    def message_id
+      @message_id ||= SecureRandom.uuid
     end
   end
 end
