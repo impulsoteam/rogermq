@@ -43,6 +43,10 @@ module Roger
 
             payload = Payload.new(body, properties, info)
             Roger.routes[consumer_key].consumer.new(payload).process
+
+            log = ["[ i ] #{info[:consumer].queue.name} received a message"]
+            log << "in routing key #{info[:routing_key]}"
+            logger.info log.join(' ')
           end
         end
       end
