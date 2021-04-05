@@ -44,8 +44,7 @@ module Roger
     end
 
     def load_consumers
-      klasses = ::Rails.root.join('app/roger/consumers').glob('**/*.rb')
-      klasses.each { |klass| klass.basename(klass.extname.to_s).to_s.camelize.constantize }
+      Dir[Config.consumers_directory].each {  |path| require File.join(Dir.pwd, path) }
     end
   end
 end
