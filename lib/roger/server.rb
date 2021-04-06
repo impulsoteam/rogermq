@@ -37,6 +37,12 @@ module Roger
             consumer_key = [info[:exchange], info[:consumer].queue.name, info[:routing_key]]
               .reject { |c| c.nil? || c.empty? }.join('.')
 
+            if Config.log_consumer_receives
+              log = ["[ i ] #{info[:consumer].queue.name} received a payload from #{info[:exchange]}"]
+              log << "in routing key #{info[:routing_key]}" unless route.routing_key.nil? || route.routing_key.empty?
+              logger.info log.join(' ')
+            end
+
             payload = Payload.new(body, properties, info)
             Roger.routes[consumer_key].consumer.new(payload).process
           end
@@ -55,6 +61,10 @@ module Roger
           routing_key = info[:routing_key]
           consumer = Roger.rpc_routes[routing_key].consumer
           body = JSON.parse(body) rescue body
+
+          if Config.log_rpc_receives
+            logger.info "[ i ] Received a rpc call for #{routing_key}"
+          end
 
           begin
             payload = Payload.new(nil, properties, info)
