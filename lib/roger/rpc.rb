@@ -1,27 +1,38 @@
 module Roger
   class Rpc
+    include Roger::Logging
+
+    class TimeoutError < StandardError; end
+    class ResponseError < StandardError; end
+
     attr_reader :routing_key, :lock, :condition, :timeout
 
     def initialize(routing_key, timeout = 30)
       @routing_key = routing_key
       @timeout = timeout
+      @response = TimeoutError.new('No response from rpc call')
     end
 
     def call(*arguments)
       @lock = Mutex.new
       @condition = ConditionVariable.new
-      Roger.broker.start unless Roger.broker.connected?
       initialize_subscription
       exchange.publish(arguments.to_json, publish_options)
       lock.synchronize { condition.wait(lock, timeout) }
       finish_subscription
 
-      @response
+      raise @response if @response.is_a?(TimeoutError)
+      raise ResponseError.new(@response['result']) unless @response['success']
+      @response['result']
+    rescue Interrupt
+      finish_subscription
+      logger.info '[ i ] Rpc call cancelled'
     end
 
     private
 
     def initialize_subscription
+      Roger.broker.start unless Roger.broker.connected?
       queue.bind(exchange, routing_key: queue.name)
       queue.subscribe do |delivery_info, properties, payload|
         if properties[:correlation_id] == message_id
@@ -43,16 +54,12 @@ module Roger
       }
     end
 
-    def channel
-      @channel ||= Roger.channel
-    end
-
     def queue
-      @queue ||= channel.queue('', exclusive: true)
+      @queue ||= Roger.channel.queue('', exclusive: true)
     end
 
     def exchange
-      @exchange ||= channel.exchange(Config.rpc_route_name, type: :direct, auto_delete: true)
+      @exchange ||= Roger.channel.exchange(Config.rpc_route_name, type: :direct, auto_delete: true)
     end
 
     def message_id
