@@ -9,9 +9,12 @@ module Roger
     @client_uri ||= 'amqp://guest:guest@localhost:5672/'
     @rpc_route_name ||= 'remote_procedure_calls'
     @consumers_directory ||= 'consumers/**/*.rb'
+    @log_consumer_receives ||= false
+    @log_rpc_receives ||= false
 
     class << self
-      attr_accessor :client_uri, :rpc_route_name, :log_level, :consumers_directory
+      attr_accessor :client_uri, :rpc_route_name, :log_level, :consumers_directory, :log_consumer_receives,
+        :log_rpc_receives
 
       def parse!
         parser = OptionParser.new do |opts|
