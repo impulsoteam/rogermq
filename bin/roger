@@ -4,9 +4,9 @@ require_relative '../lib/roger'
 
 begin
   Roger::Config.parse!
-  Roger::Server.start
+  Roger::App.start
   sleep(5) while true
 rescue Interrupt
-  Roger::Server.stop
+  Roger::App.stop
   exit(0)
 end
