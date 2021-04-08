@@ -5,10 +5,10 @@ module Roger
     class TimeoutError < StandardError; end
     class ResponseError < StandardError; end
 
-    attr_reader :routing_key, :lock, :condition, :timeout
+    attr_reader :target, :lock, :condition, :timeout, :arguments
 
-    def initialize(routing_key, timeout = 30)
-      @routing_key = routing_key
+    def initialize(target, timeout = Config.rpc_timeout)
+      @target = target
       @timeout = timeout
       @response = TimeoutError.new('No response from rpc call')
     end
@@ -16,54 +16,49 @@ module Roger
     def call(*arguments)
       @lock = Mutex.new
       @condition = ConditionVariable.new
-      initialize_subscription
-      exchange.publish(arguments.to_json, publish_options)
+      @arguments = arguments
+      subscribe! && publish!
       lock.synchronize { condition.wait(lock, timeout) }
-      finish_subscription
+      queue.delete
 
       raise @response if @response.is_a?(TimeoutError)
       raise ResponseError.new(@response['result']) unless @response['success']
+
       @response['result']
     rescue Interrupt
-      finish_subscription
-      logger.info '[ i ] Rpc call cancelled'
+      queue.delete
+      logger.info 'Rpc call cancelled'
     end
 
     private
-
-    def initialize_subscription
-      Roger.broker.start unless Roger.broker.connected?
-      queue.bind(exchange, routing_key: queue.name)
-      queue.subscribe do |delivery_info, properties, payload|
-        if properties[:correlation_id] == message_id
-          @response = JSON.parse(payload) rescue payload.to_s
-          lock.synchronize { condition.signal }
+      def subscribe!
+        queue.subscribe do |info, properties, body|
+          if properties[:correlation_id] == correlation_id
+            @response = JSON.parse(body) rescue body.to_s
+            lock.synchronize { condition.signal }
+          end
         end
       end
-    end
 
-    def finish_subscription
-      queue.delete
-    end
+      def publish!
+        exchange.publish(
+          arguments.to_json,
+          routing_key: target,
+          reply_to: queue.name,
+          correlation_id: correlation_id
+        )
+      end
 
-    def publish_options
-      {
-        routing_key: routing_key,
-        reply_to: queue.name,
-        message_id: message_id
-      }
-    end
+      def queue
+        @queue ||= App.channel.queue('', exclusive: true)
+      end
 
-    def queue
-      @queue ||= Roger.channel.queue('', exclusive: true)
-    end
+      def exchange
+        @exchange ||= Config.exchange(Config.rpc_channel, type: :direct, auto_delete: true)
+      end
 
-    def exchange
-      @exchange ||= Roger.channel.exchange(Config.rpc_route_name, type: :direct, auto_delete: true)
-    end
-
-    def message_id
-      @message_id ||= SecureRandom.uuid
-    end
+      def correlation_id
+        @correlation_id ||= SecureRandom.uuid
+      end
   end
 end
