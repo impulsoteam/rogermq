@@ -6,36 +6,50 @@ require 'dotenv/load'
 module Roger
   class Config
     @log_level ||= Logger::INFO
-    @client_uri ||= 'amqp://guest:guest@localhost:5672/'
-    @rpc_route_name ||= 'remote_procedure_calls'
-    @consumers_directory ||= 'consumers/**/*.rb'
-    @log_consumer_receives ||= false
-    @log_rpc_receives ||= false
+    @client_uri ||= nil
+    @consumers_directory ||= 'consumers'
+    @default_queue_options ||= { durable: true }
+    @default_exchange_options ||= { type: 'fanout' }
+    @app_id ||= 'roger'
+    @rpc_channel ||= 'remote_procedure_calls'
+    @rpc_timeout ||= 180
+    @logging ||= %i[start bindings receives replies]
 
     class << self
-      attr_accessor :client_uri, :rpc_route_name, :log_level, :consumers_directory, :log_consumer_receives,
-        :log_rpc_receives
+      include Roger::Logging
+      attr_accessor :client_uri, :rpc_route_name, :log_level, :consumers_directory, :default_exchange_options,
+        :default_queue_options, :app_id, :rpc_channel, :rpc_timeout, :logging
+
+      def setup
+        yield self
+      end
 
       def parse!
-        parser = OptionParser.new do |opts|
-          opts.on('-C', '--config PATH', 'Load config file') do |v|
-            require_relative File.join(Dir.pwd, v)
-          end
-
-          opts.on('-r', '--load-rails', 'Load rails (only when rails is present)') do |v|
-            load_rails!
-          end
-        end
-
-        parser.parse!
+        OptionParser.new do |opts|
+          opts.on('-C', '--config PATH', 'Load config file') { |v| require File.join(Dir.pwd, v) }
+          opts.on('--rails', 'Load rails (only when rails is present)') { |v| load_rails! }
+        end.parse!
       end
 
       def load_rails!
-        rails_path = File.expand_path(File.join('.', 'config', 'environment.rb'))
-        raise Interrupt unless File.exist?(rails_path)
+        rails_path = File.expand_path(File.join(Dir.pwd, 'config', 'environment.rb'))
+
+        unless File.exists?(rails_path)
+          logger.error "Rails not found"
+          raise Interrupt
+        end
+
         ENV['RACK_ENV'] ||= ENV['RAILS_ENV'] || 'development'
         require rails_path
         ::Rails.application.eager_load!
+      end
+
+      def exchange(exchange_name, options = {})
+        App.exchanges[exchange_name] ||= App.channel.exchange(exchange_name, options)
+      end
+
+      def queue(queue_name, options = {})
+        App.queues[queue_name] ||= App.channel.queue(queue_name, options)
       end
     end
   end
