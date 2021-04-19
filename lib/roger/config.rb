@@ -36,7 +36,7 @@ module Roger
 
         unless File.exists?(rails_path)
           logger.error "Rails not found"
-          raise Interrupt
+          exit(1)
         end
 
         ENV['RACK_ENV'] ||= ENV['RAILS_ENV'] || 'development'
