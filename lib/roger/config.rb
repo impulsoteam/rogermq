@@ -20,10 +20,6 @@ module Roger
       attr_accessor :client_uri, :rpc_route_name, :log_level, :consumers_directory, :default_exchange_options,
         :default_queue_options, :app_id, :rpc_channel, :rpc_timeout, :logging
 
-      def setup
-        yield self
-      end
-
       def parse!
         OptionParser.new do |opts|
           opts.on('-C', '--config PATH', 'Load config file') { |v| require File.join(Dir.pwd, v) }
