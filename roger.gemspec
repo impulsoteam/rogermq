@@ -12,5 +12,5 @@ Gem::Specification.new do |s|
   s.authors = %w[lsantosc@gmail.com cavallari@live.com]
   s.executables = ['roger']
   s.files = Dir['lib/**/*']
-  s.add_dependency 'bunny', '~> 2.17.0'
+  s.add_dependency 'bunny', '~> 2.19.0'
 end
