@@ -1,3 +1,3 @@
 module Roger
-  VERSION = '1.0.0.a'
+  VERSION = '1.0.1'
 end
